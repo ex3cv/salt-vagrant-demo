@@ -3,4 +3,5 @@ common_packages:
     - pkgs:
       - htop
       - strace
-      - vim
+      - vim-enhanced
+      - lsof

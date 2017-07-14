@@ -1,0 +1,4 @@
+include:
+  - .packages
+  - .service
+  - .restart

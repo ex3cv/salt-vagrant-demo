@@ -5,15 +5,15 @@
 VAGRANTFILE_API_VERSION = "2"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.provider "virtualbox" do |vb|
+  config.vm.provider "libvirt" do |vb|
       vb.memory = 1024
   end
   config.vm.define :master do |master_config|
-    master_config.vm.box = "ubuntu/trusty64"
+    master_config.vm.box = "fedora/25-cloud-base"
     master_config.vm.host_name = 'saltmaster.local'
     master_config.vm.network "private_network", ip: "192.168.50.10"
-    master_config.vm.synced_folder "saltstack/salt/", "/srv/salt"
-    master_config.vm.synced_folder "saltstack/pillar/", "/srv/pillar"
+    master_config.vm.synced_folder "saltstack/salt/", "/srv/salt", type: "rsync", rsync__auto: true
+    master_config.vm.synced_folder "saltstack/pillar/", "/srv/pillar", type: "rsync", rsync__auto: true
 
     master_config.vm.provision :salt do |salt|
       salt.master_config = "saltstack/etc/master"
@@ -23,7 +23,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       salt.minion_pub = "saltstack/keys/master_minion.pub"
       salt.seed_master = {
                           "minion1" => "saltstack/keys/minion1.pub",
-                          "minion2" => "saltstack/keys/minion2.pub"
+                          "minion2" => "saltstack/keys/minion2.pub",
+                          "haproxy" => "saltstack/keys/haproxy.pub"
                          }
 
       salt.install_type = "stable"
@@ -36,7 +37,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   config.vm.define :minion1 do |minion_config|
-    minion_config.vm.box = "ubuntu/trusty64"
+    minion_config.vm.box = "fedora/25-cloud-base"
     minion_config.vm.host_name = 'saltminion1.local'
     minion_config.vm.network "private_network", ip: "192.168.50.11"
 
@@ -52,7 +53,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   end
 
   config.vm.define :minion2 do |minion_config|
-    minion_config.vm.box = "ubuntu/trusty64"
+    minion_config.vm.box = "fedora/25-cloud-base"
     # The following line can be uncommented to use Centos
     # instead of Ubuntu.
     # Comment out the above line as well
@@ -64,6 +65,26 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       salt.minion_config = "saltstack/etc/minion2"
       salt.minion_key = "saltstack/keys/minion2.pem"
       salt.minion_pub = "saltstack/keys/minion2.pub"
+      salt.install_type = "stable"
+      salt.verbose = true
+      salt.colorize = true
+      salt.bootstrap_options = "-P -c /tmp"
+    end
+  end
+
+  config.vm.define :haproxy do |haproxy_config|
+    haproxy_config.vm.box = "fedora/25-cloud-base"
+    # The following line can be uncommented to use Centos
+    # instead of Ubuntu.
+    # Comment out the above line as well
+    #minion_config.vm.box = "bento/centos-7.2"
+    haproxy_config.vm.host_name = 'salthaproxy.local'
+    haproxy_config.vm.network "private_network", ip: "192.168.50.13"
+
+    haproxy_config.vm.provision :salt do |salt|
+      salt.minion_config = "saltstack/etc/haproxy"
+      salt.minion_key = "saltstack/keys/haproxy.pem"
+      salt.minion_pub = "saltstack/keys/haproxy.pub"
       salt.install_type = "stable"
       salt.verbose = true
       salt.colorize = true
